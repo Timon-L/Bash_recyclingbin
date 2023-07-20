@@ -3,15 +3,59 @@
 BIN_PATH="$HOME/recyclebin"
 RES_PATH="$HOME/.restore.info"
 SCRIPT_PATH="$HOME/project/recycle.sh"
+REG_PAT="^[Yy]+"
+opt_v_flag=false
+opt_i_flag=false
+opt_r_flag=false
+file_moved_flag=false
 
 function init_check(){
         if [ ! -e $BIN_PATH ] ; then
                 mkdir $BIN_PATH
-                echo "New bin @$BIN_PATH"
         fi
 	if [ ! -e $RES_PATH ] ; then
 		touch $RES_PATH
 	fi
+}
+
+function set_flags(){
+	while getopts :ivr opt
+	do
+		case $opt in
+			i) opt_i_flag=true;;
+			v) opt_v_flag=true;;
+			r) opt_r_flag=true;;
+			*) echo invalid option - $OPTARG
+			   exit 1;;
+		esac
+	done
+}
+
+function recur_rec(){
+	#if [ ! -s $1 ]
+	local abs_dir=$(realpath -e $1)	
+	for file in $(ls -R $abs_dir)
+	do	
+		if [ -f "$abs_dir/$file" ] ; then
+			local f_path=$(realpath -e $abs_dir/$file)
+			if $opt_i_flag ; then
+                       		interactive_mode $f_path
+	                else
+                        	write_to_restore $f_path
+                        	move_to_bin $f_path
+                        	file_moved_flag=true
+        	        fi
+		elif [ -d "$abs_dir/$file" ] ; then
+			continue
+		else
+			abs_dir=${file::-1}
+			#echo $abs_dir
+			#continue
+		fi
+
+		verbose_mode $file_moved_flag
+		file_moved_flag=false
+	done
 }
 
 function check_file(){
@@ -20,11 +64,15 @@ function check_file(){
 		return 1
         fi
 
-	if [ $(realpath -e $i) = $SCRIPT_PATH ] ; then
+	if [ $(realpath -e $1) = $SCRIPT_PATH ] ; then
 		echo "Attempting to delete recycle - operation aborted"
 		exit 1
-	elif [ -d $i ] ; then
-		echo "Directory name:$1 provided instead of a filename. "
+	elif [ -d $1 ] ; then
+		if $opt_r_flag ; then
+			recur_rec $1
+		else
+			echo "Directory name:$1 provided instead of a filename. "
+		fi
 		return 1
 	fi
 
@@ -32,21 +80,21 @@ function check_file(){
 }
 
 function write_to_restore(){
-	file_name=$(basename $ABS_PATH)
-	inode=$(stat -c '%i' $ABS_PATH)
+	file_name=$(basename $1)
+	inode=$(stat -c '%i' $1)
 	name_w_inode=$file_name"_"$inode
+
 	if [ ! $? ] ; then
 		echo "Abort: error with file"
+		exit 1
 	fi
-	echo "$name_w_inode:$ABS_PATH" >> $RES_PATH #write to .restore.info, format: NAME_INODE:PATH
+	echo "$name_w_inode:$1" >> $RES_PATH #write to .restore.info, format: NAME_INODE:PATH
 }
 
 function move_to_bin(){
-	DIR=$(dirname $ABS_PATH)
+	DIR=$(dirname $1)
 	NEW_ABS=$DIR"/"$name_w_inode
-	#echo $ABS_PATH
-	#echo $NEW_ABS
-	if mv $ABS_PATH $NEW_ABS ; then #rename current file
+	if mv $1 $NEW_ABS ; then #rename current file
 		if ! mv $NEW_ABS $BIN_PATH ; then
 			echo "Can't recycle bin."
 			exit 1	
@@ -54,7 +102,32 @@ function move_to_bin(){
 	else
 		echo "Can't rename file."
 		exit 1
-	fi	
+	fi
+}
+
+function verbose_mode(){
+        if $opt_v_flag ; then
+		if $1 ; then
+                        echo "*****************************************************************"
+                        echo "$ABS_PATH recycled, now in bin: $BIN_PATH"
+                        echo "Record .restore.info updated"
+                        echo "*****************************************************************"
+                else
+                        echo "*****************************************************************"
+                        echo "$ABS_PATH not recycled"
+                        echo "*****************************************************************"
+                fi
+        fi
+}
+
+function interactive_mode(){
+	read -p "Do you want to recycle $1: " resp
+
+	if [[ $resp =~ $REG_PAT ]] ; then #Check if user entered a word starting with Y or y.
+        	write_to_restore $1
+		move_to_bin $1
+		file_moved_flag=true
+	fi
 }
 
 ####Main####
@@ -65,20 +138,29 @@ if [ $# -lt 1 ] ; then
 	exit 1
 fi
 
+set_flags $*
+shift $[OPTIND-1]
+
 for i in $*
 do
 	if check_file $i ; then
-		#echo "File is valid"
 		ABS_PATH=$(realpath -e $i)
-		#echo $ABS_PATH
-		if [ $? ] ; then
-			write_to_restore
-			move_to_bin
-		else
-			echo "Error"
+		if [ ! $? ] ; then
+			echo "Error when find real path"
 			exit 1
+		fi		
+
+		if $opt_i_flag ; then
+			interactive_mode $ABS_PATH
+		else
+			write_to_restore $ABS_PATH
+			move_to_bin $ABS_PATH
+			file_moved_flag=true
 		fi
 	fi
+	verbose_mode $file_moved_flag
+
+	file_moved_flag=false
 done
 
 /bin/bash $HOME/project/test.sh

@@ -17,15 +17,13 @@ function restore_file(){
 
 	if mv $name_in_bin $name_to_res ; then #rename file to original
 		if mv "$BIN_PATH/$file_name" $dir_path ; then
-			grep -wv "$2" $RES_PATH > $TEMP_FILE
+			grep -wv "^$2" $RES_PATH > $TEMP_FILE
         	       	cat $TEMP_FILE > $RES_PATH
 		else
-			echo "Error, file not restored"
-			exit 1
+			echo "Error, file:$name_in_bin not restored"
 		fi
 	else
-		echo "Error, cant rename file"
-		exit 1
+		echo "Error, cant rename file:$name_in_bin"
 	fi
 
 	#echo $file_name
@@ -49,8 +47,8 @@ function search_dir(){
 }
 
 function check_restore(){
-	if grep -wq "$1:" $RES_PATH ; then #Look for filename_inode
-		file_path=$(grep -w "$1:" $RES_PATH | cut -d: -f2) #Absolute file path
+	if grep -wq "^$1:" $RES_PATH ; then #Look for filename_inode
+		file_path=$(grep -w "^$1:" $RES_PATH | cut -d: -f2) #Absolute file path
 		#echo $file_path
 		name_w_node="$1"
 		#echo $name_w_node
@@ -67,8 +65,7 @@ function check_restore(){
 			restore_file $file_path $name_w_node
 		fi
 	else
-		echo "file not in bin"
-		exit 1
+		echo "file:$1 not in bin"
 	fi
 }
 
@@ -80,7 +77,7 @@ fi
 
 for i in $*
 do
-	check_restore $i
+        check_restore $i
 done
 
 #check_restore $1
