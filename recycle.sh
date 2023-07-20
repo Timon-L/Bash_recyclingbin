@@ -32,9 +32,9 @@ function set_flags(){
 }
 
 function recur_rec(){
-	#if [ ! -s $1 ]
-	local abs_dir=$(realpath -e $1)	
-	for file in $(ls -R $abs_dir)
+	local abs_dir=$(realpath -e $1)
+
+	for file in $(ls -aR $abs_dir)
 	do	
 		if [ -f "$abs_dir/$file" ] ; then
 			local f_path=$(realpath -e $abs_dir/$file)
@@ -48,14 +48,16 @@ function recur_rec(){
 		elif [ -d "$abs_dir/$file" ] ; then
 			continue
 		else
-			abs_dir=${file::-1}
-			#echo $abs_dir
-			#continue
+			abs_dir=${file::-1} #Line that is not a dir or file, remove colon from last pos.
 		fi
 
 		verbose_mode $file_moved_flag
 		file_moved_flag=false
 	done
+
+	if [ $(find $abs_dir -type f | wc -l) -le 0 ] ; then
+		rmdir $abs_dir
+	fi
 }
 
 function check_file(){
@@ -64,7 +66,7 @@ function check_file(){
 		return 1
         fi
 
-	if [ $(realpath -e $1) = $SCRIPT_PATH ] ; then
+	if [ $(realpath $1) = $SCRIPT_PATH ] ; then
 		echo "Attempting to delete recycle - operation aborted"
 		exit 1
 	elif [ -d $1 ] ; then
@@ -84,7 +86,7 @@ function write_to_restore(){
 	inode=$(stat -c '%i' $1)
 	name_w_inode=$file_name"_"$inode
 
-	if [ ! $? ] ; then
+	if [ $? -ne 0 ] ; then
 		echo "Abort: error with file"
 		exit 1
 	fi
@@ -94,8 +96,9 @@ function write_to_restore(){
 function move_to_bin(){
 	DIR=$(dirname $1)
 	NEW_ABS=$DIR"/"$name_w_inode
-	if mv $1 $NEW_ABS ; then #rename current file
-		if ! mv $NEW_ABS $BIN_PATH ; then
+
+	if mv $1 $NEW_ABS 2> /dev/null ; then #rename current file
+		if ! mv $NEW_ABS $BIN_PATH 2> /dev/null ; then
 			echo "Can't recycle bin."
 			exit 1	
 		fi
