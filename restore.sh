@@ -8,16 +8,24 @@ REG_PAT="^[Yy]+"
 function restore_file(){
 	local dir_path=$(dirname $1)
 	local file_name=$(basename $1)
+	local name_in_bin="$BIN_PATH/$2"
+	local name_to_res="$BIN_PATH/$file_name"
+	echo "Arg1: $1"
+	echo "name in bin: $name_in_bin"
+	echo "file name in res: $file_name"
+	echo "file name to restore: $name_to_res"
 
-	if mv "$BIN_PATH/$2" "$BIN_PATH/$file_name" ; then
-		if mv "$BIN_PATH/$file_name" $dir_path ; then
-			grep -wv "$2" $RES_PATH > $TEMP_FILE
-        	       	cat $TEMP_FILE > $RES_PATH
-		else
-			echo "Error, file not restored"
-			exit 1
-		fi
-		echo "Error, file not restored"
+	if mv $name_in_bin $name_to_res ; then #rename file to original
+		#if mv "$BIN_PATH/$file_name" $dir_path ; then
+			#grep -wv "$2" $RES_PATH > $TEMP_FILE
+        	       	#cat $TEMP_FILE > $RES_PATH
+		#else
+			#echo "Error, file not restored"
+			#exit 1
+		#fi
+		echo "CONT"
+	else
+		echo "Error, cant rename file"
 		exit 1
 	fi
 
@@ -28,7 +36,9 @@ function restore_file(){
 function search_dir(){
 	local dir_path=$(dirname $1)
 	local file_name=$(basename $1)
-
+	
+	#echo $dir_path
+	#echo $file_name
 	for file in $(ls $dir_path)
 	do
 		if [ $file = $file_name ] ; then
@@ -41,21 +51,21 @@ function search_dir(){
 
 function check_restore(){
 	if grep -wq "$1:" $RES_PATH ; then #Look for filename_inode
-		#echo "file found"
-		file=$(grep -w "$1:" $RES_PATH | cut -d: -f2) #Absolute file path
+		file_path=$(grep -w "$1:" $RES_PATH | cut -d: -f2) #Absolute file path
+		echo $file_path
 		name_w_node="$1"
 		#echo $name_w_node
-		if search_dir $file; then
+		if search_dir $file_path; then
                		read -p "Do you want to overwrite? " rep
 
                 	if [[ $rep =~ $REG_PAT ]] ; then #Check if user entered a word starting with Y or y.
                         	#echo "File restored"
-				restore_file $file $name_w_node
+				restore_file $file_path $name_w_node
                 	else
                         	echo "File not restored"
                 	fi
 		else
-			restore_file $file $name_w_node
+			restore_file $file_path $name_w_node
 		fi
 	else
 		echo "file not in bin"

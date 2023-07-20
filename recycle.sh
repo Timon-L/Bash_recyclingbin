@@ -46,8 +46,15 @@ function move_to_bin(){
 	NEW_ABS=$DIR"/"$name_w_inode
 	#echo $ABS_PATH
 	#echo $NEW_ABS
-	mv $ABS_PATH $NEW_ABS #rename current file
-	mv $NEW_ABS $BIN_PATH
+	if mv $ABS_PATH $NEW_ABS ; then #rename current file
+		if ! mv $NEW_ABS $BIN_PATH ; then
+			echo "Can't recycle bin."
+			exit 1	
+		fi
+	else
+		echo "Can't rename file."
+		exit 1
+	fi	
 }
 
 ####Main####
