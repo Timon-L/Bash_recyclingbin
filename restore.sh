@@ -78,4 +78,11 @@ if [ $# -lt 1 ] ; then
 	exit 1
 fi
 
-check_restore $1
+for i in $*
+do
+	check_restore $i
+done
+
+#check_restore $1
+
+/bin/bash $HOME/project/test.sh

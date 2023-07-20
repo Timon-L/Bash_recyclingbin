@@ -16,16 +16,16 @@ function init_check(){
 
 function check_file(){
 	if [ ! -e $1 ] ; then
-		echo "File does not exist. "
-        	exit 1
+		echo "File:$1 does not exist. "
+		return 1
         fi
 
 	if [ $(realpath -e $i) = $SCRIPT_PATH ] ; then
 		echo "Attempting to delete recycle - operation aborted"
 		exit 1
 	elif [ -d $i ] ; then
-		echo "Directory name provided instead of a filename. "
-		exit 1
+		echo "Directory name:$1 provided instead of a filename. "
+		return 1
 	fi
 
 	return 0
@@ -80,3 +80,5 @@ do
 		fi
 	fi
 done
+
+/bin/bash $HOME/project/test.sh
