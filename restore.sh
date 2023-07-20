@@ -81,7 +81,6 @@ function check_restore(){
                		read -p "Do you want to overwrite? " rep
 
                 	if [[ $rep =~ $REG_PAT ]] ; then #Check if user entered a word starting with Y or y.
-                        	#echo "File restored"
 				restore_file $file_path $name_w_node
                 	else
                         	echo "File not restored"
@@ -101,6 +100,10 @@ function check_restore(){
 if [ $# -lt 1 ] ; then
 	echo "No filename provided"
 	exit 1
+fi
+
+if [ ! -e $TEMP_FILE ] ; then
+	touch $TEMP_FILE
 fi
 
 for i in $*

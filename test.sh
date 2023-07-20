@@ -10,7 +10,7 @@ function printTest(){
 	echo " "
 
 	echo "File in temp: "
-	ls ./temp
+	ls -R ./temp
 }
 
 ####Main####

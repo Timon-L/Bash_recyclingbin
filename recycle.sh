@@ -3,6 +3,7 @@
 BIN_PATH="$HOME/recyclebin"
 RES_PATH="$HOME/.restore.info"
 SCRIPT_PATH="$HOME/project/recycle.sh"
+TEMP_FILE="$HOME/project/tmp"
 REG_PAT="^[Yy]+"
 opt_v_flag=false
 opt_i_flag=false
@@ -15,6 +16,9 @@ function init_check(){
         fi
 	if [ ! -e $RES_PATH ] ; then
 		touch $RES_PATH
+	fi
+	if [ ! -e $TEMP_FILE ] ; then #Create temp file to store restore.info
+		touch $TEMP_FILE
 	fi
 }
 
@@ -33,7 +37,7 @@ function set_flags(){
 
 function recur_recycle(){
 	local abs_dir=$(realpath -e $1)
-	local curr_dir=""
+	local dir_arr=()
 
 	for file in $(ls -aR $abs_dir)
 	do	
@@ -49,21 +53,24 @@ function recur_recycle(){
 		elif [ -d "$abs_dir/$file" ] ; then
 			continue
 		else	
-			abs_dir=${file::-1} #Line that is not a dir or file, remove colon from last pos.
+			abs_dir=${file::-1} #Line that is not a dir or file, used as absolute path to file, remove colon from last pos.
+			dir_arr+=($abs_dir)
 		fi
 
-		if [ $(find $abs_dir -type f | wc -l) -le 0 ] ; then
-                	rmdir $abs_dir
-                fi
 		verbose_mode $file_moved_flag
 		file_moved_flag=false
 	done
 	
-	abs_dir=$(realpath -e $1)
+	local len=${#dir_arr[@]}
 
-	if [ $(find $abs_dir -type f | wc -l) -le 0 ] ; then
-		rmdir $abs_dir
-	fi
+	for ((i=(len-1); i>=0; i--))
+       	do
+		if [ $(find ${dir_arr[$i]} -type f | wc -l) -le 0 ] ; then
+			rmdir ${dir_arr[$i]}
+		else
+			echo "${dir_arr[$i]} is not empty, directory not deleted"
+		fi		
+	done
 }
 
 function check_file(){
