@@ -31,8 +31,9 @@ function set_flags(){
 	done
 }
 
-function recur_rec(){
+function recur_recycle(){
 	local abs_dir=$(realpath -e $1)
+	local curr_dir=""
 
 	for file in $(ls -aR $abs_dir)
 	do	
@@ -47,13 +48,18 @@ function recur_rec(){
         	        fi
 		elif [ -d "$abs_dir/$file" ] ; then
 			continue
-		else
+		else	
 			abs_dir=${file::-1} #Line that is not a dir or file, remove colon from last pos.
 		fi
 
+		if [ $(find $abs_dir -type f | wc -l) -le 0 ] ; then
+                	rmdir $abs_dir
+                fi
 		verbose_mode $file_moved_flag
 		file_moved_flag=false
 	done
+	
+	abs_dir=$(realpath -e $1)
 
 	if [ $(find $abs_dir -type f | wc -l) -le 0 ] ; then
 		rmdir $abs_dir
@@ -71,7 +77,7 @@ function check_file(){
 		exit 1
 	elif [ -d $1 ] ; then
 		if $opt_r_flag ; then
-			recur_rec $1
+			recur_recycle $1
 		else
 			echo "Directory name:$1 provided instead of a filename. "
 		fi
