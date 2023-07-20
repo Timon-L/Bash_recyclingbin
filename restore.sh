@@ -9,19 +9,20 @@ function restore_file(){
 	local dir_path=$(dirname $1)
 	local file_name=$(basename $1)
 
-	mv "$BIN_PATH/$file_name" $dir_path
-
-	#echo $file_name
-	#echo $dir_path
-
-	if [ $? ] ; then
-		grep -wv "$2" $RES_PATH > $TEMP_FILE
-		cat $TEMP_FILE > $RES_PATH
-	else
-		echo "Erro, file not restored"
+	if mv "$BIN_PATH/$2" "$BIN_PATH/$file_name" ; then
+		if mv "$BIN_PATH/$file_name" $dir_path ; then
+			grep -wv "$2" $RES_PATH > $TEMP_FILE
+        	       	cat $TEMP_FILE > $RES_PATH
+		else
+			echo "Error, file not restored"
+			exit 1
+		fi
+		echo "Error, file not restored"
 		exit 1
 	fi
 
+	#echo $file_name
+	#echo $dir_path
 }
 
 function search_dir(){
@@ -42,7 +43,7 @@ function check_restore(){
 	if grep -wq "$1:" $RES_PATH ; then #Look for filename_inode
 		#echo "file found"
 		file=$(grep -w "$1:" $RES_PATH | cut -d: -f2) #Absolute file path
-		name_w_node="$1:"
+		name_w_node="$1"
 		#echo $name_w_node
 		if search_dir $file; then
                		read -p "Do you want to overwrite? " rep
