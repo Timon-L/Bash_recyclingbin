@@ -3,6 +3,7 @@
 BIN_PATH="$HOME/recyclebin"
 RES_PATH="$HOME/.restore.info"
 SCRIPT_PATH="$HOME/project/recycle.sh"
+RESTORE_PATH="$HOME/project/restore.sh"
 TEMP_FILE="$HOME/project/tmp"
 REG_PAT="^[Yy]+"
 opt_v_flag=false
@@ -80,9 +81,12 @@ function check_file(){
         fi
 
 	if [ $(realpath $1) = $SCRIPT_PATH ] ; then
-		echo "Attempting to delete recycle - operation aborted"
+		echo "Attempting to delete recycle script - operation aborted"
 		exit 1
-	elif [ -d $1 ] ; then
+	elif [ $(realpath $1) = $RESTORE_PATH ] ; then
+		echo "Attempting to delete restore script - operation aborted"
+		exit 1
+	elif [ -d $1 ] ; then #Check if file is directory, if recursive opt is on, use function to remove files"
 		if $opt_r_flag ; then
 			recur_recycle $1
 		else
